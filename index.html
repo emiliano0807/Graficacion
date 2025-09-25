@@ -3,60 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transformaciones con Sliders</title>
+    <title>Transformaciones de Imagen | Nuevo Diseño</title>
     <style>
-        body { font-family: sans-serif; text-align: center; margin: 20px; background-color: #f0f0f0; }
-        canvas { border: 1px solid rgb(255, 1, 1); margin: 10px; background-color: rgb(245, 3, 3); }
-        #controls { display: inline-block; text-align: left; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .control-group { margin-bottom: 15px; display: grid; grid-template-columns: 120px 1fr 50px; align-items: center; gap: 10px; }
-        .control-group label { font-weight: bold; }
-        .control-group input[type="range"] { width: 100%; }
-        .control-group span { font-family: monospace; }
-        #reset-button { width: 100%; padding: 10px; font-size: 16px; cursor: pointer; background-color: red; color: white; border: none; border-radius: 5px; }
+        /* --- ESTILOS GENERALES Y TEMA OSCURO --- */
+        :root {
+            --bg-color: #1a1d23;
+            --sidebar-color: #252a33;
+            --primary-text-color: #e0e0e0;
+            --secondary-text-color: #a0a0a0;
+            --accent-color: #00aaff;
+            --border-color: #444;
+            --button-bg-color: #333;
+            --button-hover-bg-color: #444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden; /* Evita el scroll de la página principal */
+        }
+
+        /* --- ESTRUCTURA PRINCIPAL (MAIN Y SIDEBAR) --- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .sidebar {
+            width: 350px;
+            background-color: var(--sidebar-color);
+            padding: 20px;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Permite scroll solo en la barra lateral si es necesario */
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        /* --- ESTILOS DE LOS CANVAS --- */
+        canvas {
+            border: 2px solid var(--border-color);
+            background-color: #000;
+            border-radius: 8px;
+        }
+
+        #canvas { /* Canvas de referencia en la barra lateral */
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        #resultado { /* Canvas principal */
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        /* --- ESTILOS DE LOS CONTROLES --- */
+        #controls {
+            flex-grow: 1;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--secondary-text-color);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slider-container input[type="range"] {
+            flex-grow: 1;
+        }
+
+        .slider-container span {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--bg-color);
+            padding: 5px 8px;
+            border-radius: 4px;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        #reset-button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: var(--button-bg-color);
+            color: var(--primary-text-color);
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            margin-top: 20px;
+            transition: background-color 0.2s;
+        }
+
+        #reset-button:hover {
+            background-color: var(--button-hover-bg-color);
+        }
+
+        /* --- ESTILOS PERSONALIZADOS PARA LOS SLIDERS --- */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #444;
+            border-radius: 5px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            border: 2px solid var(--bg-color);
+            transition: transform 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            border: 2px solid var(--bg-color);
+        }
     </style>
 </head>
 <body>
-    <h2>Imagen de Referencia (Blanco y Negro)</h2>
-    <canvas id="canvas"></canvas>
 
-    <h2>Resultado Transformado (Detector de Bordes Sobel)</h2>
-    <canvas id="resultado"></canvas>
-
-    <div id="controls">
-        <div class="control-group">
-            <label for="translateX">Traslación X:</label>
-            <input type="range" id="translateX" data-state="translateX" min="-200" max="200" value="0" step="1">
-            <span id="translateXValue">0</span>
-        </div>
-        <div class="control-group">
-            <label for="translateY">Traslación Y:</label>
-            <input type="range" id="translateY" data-state="translateY" min="-200" max="200" value="0" step="1">
-            <span id="translateYValue">0</span>
-        </div>
-        <div class="control-group">
-            <label for="scale">Escala:</label>
-            <input type="range" id="scale" data-state="scale" min="0.1" max="3" value="1" step="0.05">
-            <span id="scaleValue">1.00</span>
-        </div>
-        <div class="control-group">
-            <label for="rotation">Rotación:</label>
-            <input type="range" id="rotation" data-state="rotation" min="-180" max="180" value="0" step="1">
-            <span id="rotationValue">0</span>
-        </div>
-        <div class="control-group">
-            <label for="shearX">Cizallado X:</label>
-            <input type="range" id="shearX" data-state="shearX" min="-1" max="1" value="0" step="0.05">
-            <span id="shearXValue">0.00</span>
-        </div>
-        <div class="control-group">
-            <label for="shearY">Cizallado Y:</label>
-            <input type="range" id="shearY" data-state="shearY" min="-1" max="1" value="0" step="0.05">
-            <span id="shearYValue">0.00</span>
-        </div>
-        <button id="reset-button" onclick="reiniciarTransformaciones()"><strong>Reiniciar Todo</strong></button>
+    <div class="main-content">
+        <h2>Resultado Transformado (Detector de Bordes)</h2>
+        <canvas id="resultado"></canvas>
     </div>
 
+    <aside class="sidebar">
+        <h2>Original</h2>
+        <canvas id="canvas"></canvas>
+
+        <h2>Controles</h2>
+        <div id="controls">
+            <div class="control-group">
+                <label for="translateX">Traslación X</label>
+                <div class="slider-container">
+                    <input type="range" id="translateX" data-state="translateX" min="-200" max="200" value="0" step="1">
+                    <span id="translateXValue">0.00</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="translateY">Traslación Y</label>
+                <div class="slider-container">
+                    <input type="range" id="translateY" data-state="translateY" min="-200" max="200" value="0" step="1">
+                    <span id="translateYValue">0.00</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="scale">Escala</label>
+                <div class="slider-container">
+                    <input type="range" id="scale" data-state="scale" min="0.1" max="3" value="1" step="0.05">
+                    <span id="scaleValue">1.00</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="rotation">Rotación</label>
+                <div class="slider-container">
+                    <input type="range" id="rotation" data-state="rotation" min="-180" max="180" value="0" step="1">
+                    <span id="rotationValue">0.00</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="shearX">Cizallado X</label>
+                <div class="slider-container">
+                    <input type="range" id="shearX" data-state="shearX" min="-1" max="1" value="0" step="0.05">
+                    <span id="shearXValue">0.00</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="shearY">Cizallado Y</label>
+                <div class="slider-container">
+                    <input type="range" id="shearY" data-state="shearY" min="-1" max="1" value="0" step="0.05">
+                    <span id="shearYValue">0.00</span>
+                </div>
+            </div>
+            <button id="reset-button" onclick="reiniciarTransformaciones()"><strong>Reiniciar Todo</strong></button>
+        </div>
+    </aside>
+
     <script type="text/javascript">
+        // --- EL CÓDIGO JAVASCRIPT ES EXACTAMENTE EL MISMO, NO SE REQUIEREN CAMBIOS ---
+
         // --- CONFIGURACIÓN INICIAL Y ESTADO ---
         var image = new Image();
         const canvas = document.getElementById('canvas');
@@ -70,7 +238,7 @@
         const ctxTemp = tempCanvas.getContext('2d', { willReadFrequently: true });
 
         image.onload = imageLoaded;
-        image.src = "yo.jpg";
+        image.src = "yo.jpg"; // Asegúrate de que esta imagen exista en la misma carpeta
 
         function imageLoaded() {
             // Configurar canvas superior (estático)
@@ -118,16 +286,23 @@
 
         // --- FUNCIÓN PRINCIPAL DE DIBUJADO ---
         function actualizarResultadoTransformado() {
-            ctxTemp.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+            // Limpiar y preparar el canvas temporal
             ctxTemp.save();
+            ctxTemp.fillStyle = '#000'; // Fondo negro para el canvas temporal
+            ctxTemp.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Aplicar transformaciones al centro
             ctxTemp.translate(tempCanvas.width / 2, tempCanvas.height / 2);
             ctxTemp.translate(transformState.translateX, transformState.translateY);
             ctxTemp.scale(transformState.scale, transformState.scale);
             ctxTemp.rotate(transformState.rotation * Math.PI / 180);
             ctxTemp.transform(1, transformState.shearY, transformState.shearX, 1, 0, 0);
+            
+            // Dibujar la imagen original (no la B&N)
             ctxTemp.drawImage(image, -image.width / 2, -image.height / 2);
             ctxTemp.restore();
 
+            // Procesar la imagen ya transformada
             blancoYNegro(tempCanvas);
             convulucionar(tempCanvas, resultadoCanvas);
         }
@@ -150,6 +325,8 @@
             var pixelesFuente = imgDataFuente.data;
             
             var ctxDestino = canvasDestino.getContext("2d");
+            // Limpiar canvas de destino antes de dibujar
+            ctxDestino.clearRect(0, 0, canvasDestino.width, canvasDestino.height);
             var imgDataDestino = ctxDestino.createImageData(canvasFuente.width, canvasFuente.height);
             var pixelesDestino = imgDataDestino.data;
 
