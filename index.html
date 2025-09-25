@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformaciones con Sliders</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin: 20px; background-color: #f0f0f0; }
+        canvas { border: 1px solid rgb(255, 1, 1); margin: 10px; background-color: rgb(245, 3, 3); }
+        #controls { display: inline-block; text-align: left; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .control-group { margin-bottom: 15px; display: grid; grid-template-columns: 120px 1fr 50px; align-items: center; gap: 10px; }
+        .control-group label { font-weight: bold; }
+        .control-group input[type="range"] { width: 100%; }
+        .control-group span { font-family: monospace; }
+        #reset-button { width: 100%; padding: 10px; font-size: 16px; cursor: pointer; background-color: #d9534f; color: white; border: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h2>Imagen de Referencia (Blanco y Negro)</h2>
+    <canvas id="canvas"></canvas>
+
+    <h2>Resultado Transformado (Detector de Bordes Sobel)</h2>
+    <canvas id="resultado"></canvas>
+
+    <div id="controls">
+        <div class="control-group">
+            <label for="translateX">Traslación X:</label>
+            <input type="range" id="translateX" data-state="translateX" min="-200" max="200" value="0" step="1">
+            <span id="translateXValue">0</span>
+        </div>
+        <div class="control-group">
+            <label for="translateY">Traslación Y:</label>
+            <input type="range" id="translateY" data-state="translateY" min="-200" max="200" value="0" step="1">
+            <span id="translateYValue">0</span>
+        </div>
+        <div class="control-group">
+            <label for="scale">Escala:</label>
+            <input type="range" id="scale" data-state="scale" min="0.1" max="3" value="1" step="0.05">
+            <span id="scaleValue">1.00</span>
+        </div>
+        <div class="control-group">
+            <label for="rotation">Rotación:</label>
+            <input type="range" id="rotation" data-state="rotation" min="-180" max="180" value="0" step="1">
+            <span id="rotationValue">0</span>
+        </div>
+        <div class="control-group">
+            <label for="shearX">Cizallado X:</label>
+            <input type="range" id="shearX" data-state="shearX" min="-1" max="1" value="0" step="0.05">
+            <span id="shearXValue">0.00</span>
+        </div>
+        <div class="control-group">
+            <label for="shearY">Cizallado Y:</label>
+            <input type="range" id="shearY" data-state="shearY" min="-1" max="1" value="0" step="0.05">
+            <span id="shearYValue">0.00</span>
+        </div>
+        <button id="reset-button" onclick="reiniciarTransformaciones()"><strong>Reiniciar Todo</strong></button>
+    </div>
+
+    <script type="text/javascript">
+        // --- CONFIGURACIÓN INICIAL Y ESTADO ---
+        var image = new Image();
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        const resultadoCanvas = document.getElementById('resultado');
+
+        const defaultState = { translateX: 0, translateY: 0, scale: 1, rotation: 0, shearX: 0, shearY: 0 };
+        let transformState = { ...defaultState };
+
+        const tempCanvas = document.createElement('canvas');
+        const ctxTemp = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+        image.onload = imageLoaded;
+        image.src = "yo.jpg";
+
+        function imageLoaded() {
+            // Configurar canvas superior (estático)
+            canvas.width = image.width;
+            canvas.height = image.height;
+            ctx.drawImage(image, 0, 0);
+            blancoYNegro(canvas);
+
+            // Configurar canvas de resultado y temporal
+            resultadoCanvas.width = image.width * 1.5;
+            resultadoCanvas.height = image.height * 1.5;
+            tempCanvas.width = resultadoCanvas.width;
+            tempCanvas.height = resultadoCanvas.height;
+            
+            configurarControles();
+            actualizarResultadoTransformado();
+        }
+
+        // --- LÓGICA DE CONTROLES ---
+        function configurarControles() {
+            const sliders = document.querySelectorAll('input[type="range"]');
+            sliders.forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    const stateKey = e.target.dataset.state;
+                    const value = parseFloat(e.target.value);
+                    transformState[stateKey] = value;
+                    
+                    document.getElementById(`${e.target.id}Value`).textContent = value.toFixed(2);
+                    
+                    actualizarResultadoTransformado();
+                });
+            });
+        }
+        
+        function reiniciarTransformaciones() {
+            transformState = { ...defaultState };
+            document.querySelectorAll('input[type="range"]').forEach(slider => {
+                const stateKey = slider.dataset.state;
+                const defaultValue = defaultState[stateKey];
+                slider.value = defaultValue;
+                document.getElementById(`${slider.id}Value`).textContent = defaultValue.toFixed(2);
+            });
+            actualizarResultadoTransformado();
+        }
+
+        // --- FUNCIÓN PRINCIPAL DE DIBUJADO ---
+        function actualizarResultadoTransformado() {
+            ctxTemp.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+            ctxTemp.save();
+            ctxTemp.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+            ctxTemp.translate(transformState.translateX, transformState.translateY);
+            ctxTemp.scale(transformState.scale, transformState.scale);
+            ctxTemp.rotate(transformState.rotation * Math.PI / 180);
+            ctxTemp.transform(1, transformState.shearY, transformState.shearX, 1, 0, 0);
+            ctxTemp.drawImage(image, -image.width / 2, -image.height / 2);
+            ctxTemp.restore();
+
+            blancoYNegro(tempCanvas);
+            convulucionar(tempCanvas, resultadoCanvas);
+        }
+
+        // --- FUNCIONES DE PROCESAMIENTO DE PÍXELES (SIN CAMBIOS) ---
+        function blancoYNegro(canvas) {
+            var context = canvas.getContext("2d", { willReadFrequently: true });
+            var imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+            var pixeles = imgData.data;
+            for (var p = 0; p < pixeles.length; p += 4) {
+                var promedio = (pixeles[p] + pixeles[p + 1] + pixeles[p + 2]) / 3;
+                pixeles[p] = promedio; pixeles[p + 1] = promedio; pixeles[p + 2] = promedio;
+            }
+            context.putImageData(imgData, 0, 0);
+        }
+        
+        function convulucionar(canvasFuente, canvasDestino) {
+            var ctxFuente = canvasFuente.getContext("2d", { willReadFrequently: true });
+            var imgDataFuente = ctxFuente.getImageData(0, 0, canvasFuente.width, canvasFuente.height);
+            var pixelesFuente = imgDataFuente.data;
+            
+            var ctxDestino = canvasDestino.getContext("2d");
+            var imgDataDestino = ctxDestino.createImageData(canvasFuente.width, canvasFuente.height);
+            var pixelesDestino = imgDataDestino.data;
+
+            const sobelVertical = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]];
+            const sobelHorizontal = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]];
+
+            for (let y = 1; y < canvasFuente.height - 1; y++) {
+                for (let x = 1; x < canvasFuente.width - 1; x++) {
+                    let gradienteX = 0, gradienteY = 0;
+                    for (let ky = -1; ky <= 1; ky++) {
+                        for (let kx = -1; kx <= 1; kx++) {
+                            const idxVecino = ((y + ky) * canvasFuente.width + (x + kx)) * 4;
+                            const valorPixel = pixelesFuente[idxVecino];
+                            gradienteX += valorPixel * sobelHorizontal[ky + 1][kx + 1];
+                            gradienteY += valorPixel * sobelVertical[ky + 1][kx + 1];
+                        }
+                    }
+                    const idxActual = (y * canvasFuente.width + x) * 4;
+                    const magnitud = Math.sqrt(gradienteX * gradienteX + gradienteY * gradienteY);
+                    pixelesDestino[idxActual] = magnitud;
+                    pixelesDestino[idxActual + 1] = magnitud;
+                    pixelesDestino[idxActual + 2] = magnitud;
+                    pixelesDestino[idxActual + 3] = 255;
+                }
+            }
+            ctxDestino.putImageData(imgDataDestino, 0, 0);
+        }
+    </script>
+</body>
+</html>
